@@ -183,6 +183,20 @@ main {
   gap: 8px;
 }
 
+.test-card.completed { border-left: 4px solid var(--green); }
+
+.score-badge {
+  display: inline-block;
+  width: fit-content;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.score-badge.good { background: rgba(30, 142, 62, 0.15); color: var(--green); }
+.score-badge.inprogress { background: var(--blue-light); color: var(--heading); }
+
 .test-card h4 { margin: 0; }
 
 .test-meta {

@@ -50,6 +50,15 @@
   const contentEl = document.getElementById("content");
   const tabs = document.querySelectorAll(".grade-tab");
 
+  function getResult(id) {
+    try { return (JSON.parse(localStorage.getItem("caaspp_results")) || {})[id] || null; }
+    catch (e) { return null; }
+  }
+  function hasProgress(id) {
+    try { return localStorage.getItem("caaspp_progress_" + id) !== null; }
+    catch (e) { return false; }
+  }
+
   function render(grade) {
     const tests = window.TEST_MANIFEST.filter(t => t.grade === grade);
     const subjects = ["ELA", "Math"];
@@ -58,12 +67,24 @@
       const subjectTests = tests.filter(t => t.subject === subject).sort((a,b) => a.paper - b.paper);
       html += `<div class="subject-block"><h3>${subject === "ELA" ? "English Language Arts" : "Math"}</h3><div class="card-grid">`;
       subjectTests.forEach(t => {
+        const result = getResult(t.id);
+        const inProgress = !result && hasProgress(t.id);
+        let statusHtml = "";
+        let startLabel = "Start Test Online";
+        if (result && result.best) {
+          statusHtml = `<div class="score-badge good">✅ Best: ${result.best.correct}/${result.best.total} (${result.best.pct}%)${result.attempts > 1 ? " &middot; " + result.attempts + " attempts" : ""}</div>`;
+          startLabel = "Retake Test";
+        } else if (inProgress) {
+          statusHtml = `<div class="score-badge inprogress">▶ In progress</div>`;
+          startLabel = "Resume Test";
+        }
         html += `
-          <div class="test-card">
+          <div class="test-card${result ? " completed" : ""}">
             <h4>${t.title}</h4>
             <div class="test-meta">${t.durationMinutes} minutes &middot; Timed, auto-scored</div>
+            ${statusHtml}
             <div class="btn-row">
-              <a class="btn btn-primary" href="test.html?id=${t.id}">Start Test Online</a>
+              <a class="btn btn-primary" href="test.html?id=${t.id}">${startLabel}</a>
             </div>
             <div class="btn-row">
               <a class="btn btn-outline" href="print.html?id=${t.id}&mode=blank" target="_blank">Print Blank Copy</a>

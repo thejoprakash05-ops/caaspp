@@ -270,6 +270,19 @@
     return s.length > n ? s.slice(0, n).trim() + "…" : s;
   }
 
+  function recordResult(id, correct, total, pct) {
+    try {
+      const all = JSON.parse(localStorage.getItem("caaspp_results")) || {};
+      const prev = all[id] || { attempts: 0, best: null, last: null };
+      const entry = { correct, total, pct, date: new Date().toISOString() };
+      prev.attempts = (prev.attempts || 0) + 1;
+      prev.last = entry;
+      if (!prev.best || pct > prev.best.pct) prev.best = entry;
+      all[id] = prev;
+      localStorage.setItem("caaspp_results", JSON.stringify(all));
+    } catch (e) { /* ignore storage errors */ }
+  }
+
   function buildReviewSections(missedItems) {
     const bySectionIdx = new Map();
     missedItems.forEach(item => {
@@ -319,6 +332,7 @@
     });
 
     const pct = Math.round((totalCorrect / FLAT.length) * 100);
+    recordResult(TEST.id, totalCorrect, FLAT.length, pct);
 
     let domainRows = "";
     Object.keys(bySection).forEach(name => {
