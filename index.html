@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAASPP Practice Center</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<script src="theme.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="header-left">
+    <img src="favicon.svg" alt="CAASPP Practice Center logo" class="logo">
+    <div>
+      <h1>CAASPP Practice Center</h1>
+      <div class="subtitle">Smarter Balanced (SBAC) style practice tests &mdash; ELA &amp; Math</div>
+    </div>
+  </div>
+  <div class="header-left">
+    <div class="subtitle">Grades 7 &amp; 8</div>
+    <button class="theme-toggle-btn" id="theme-toggle">🌙 Dark Mode</button>
+  </div>
+</header>
+
+<main>
+  <div class="intro-box">
+    <h2>Welcome!</h2>
+    <p>These practice tests are modeled after the California Assessment of Student Performance and Progress
+      (CAASPP) Smarter Balanced tests for English Language Arts and Math. Each test is timed, just like the
+      real thing, and gives you a full score breakdown by topic when you finish.</p>
+    <p>You can take a test <strong>online</strong> (click <em>Start Test</em>) or <strong>print it on paper</strong>
+      (click <em>Print Blank Copy</em> or <em>Print Answer Key</em>).</p>
+  </div>
+
+  <div class="grade-tabs">
+    <div class="grade-tab active" data-grade="7">Grade 7</div>
+    <div class="grade-tab" data-grade="8">Grade 8</div>
+  </div>
+
+  <div id="content"></div>
+</main>
+
+<footer class="appfoot">Practice materials only &mdash; not affiliated with the California Department of Education or Smarter Balanced.</footer>
+
+<script src="manifest.js"></script>
+<script>
+  const contentEl = document.getElementById("content");
+  const tabs = document.querySelectorAll(".grade-tab");
+
+  function render(grade) {
+    const tests = window.TEST_MANIFEST.filter(t => t.grade === grade);
+    const subjects = ["ELA", "Math"];
+    let html = "";
+    subjects.forEach(subject => {
+      const subjectTests = tests.filter(t => t.subject === subject).sort((a,b) => a.paper - b.paper);
+      html += `<div class="subject-block"><h3>${subject === "ELA" ? "English Language Arts" : "Math"}</h3><div class="card-grid">`;
+      subjectTests.forEach(t => {
+        html += `
+          <div class="test-card">
+            <h4>${t.title}</h4>
+            <div class="test-meta">${t.durationMinutes} minutes &middot; Timed, auto-scored</div>
+            <div class="btn-row">
+              <a class="btn btn-primary" href="test.html?id=${t.id}">Start Test Online</a>
+            </div>
+            <div class="btn-row">
+              <a class="btn btn-outline" href="print.html?id=${t.id}&mode=blank" target="_blank">Print Blank Copy</a>
+              <a class="btn btn-outline" href="print.html?id=${t.id}&mode=key" target="_blank">Print Answer Key</a>
+            </div>
+          </div>`;
+      });
+      html += `</div></div>`;
+    });
+    contentEl.innerHTML = html;
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      tabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      render(parseInt(tab.dataset.grade, 10));
+    });
+  });
+
+  render(7);
+</script>
+</body>
+</html>

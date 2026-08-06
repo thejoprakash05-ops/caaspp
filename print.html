@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAASPP Practice Test - Print</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<script src="theme.js"></script>
+<link rel="stylesheet" href="style.css">
+<style>
+  body { background: #fff; }
+  .print-wrap { max-width: 850px; margin: 0 auto; padding: 24px; }
+  .print-header { border-bottom: 3px solid #1b3a6b; padding-bottom: 10px; margin-bottom: 20px; }
+  .print-q { margin-bottom: 22px; page-break-inside: avoid; }
+  .print-choice { margin: 4px 0 4px 20px; }
+  .print-choice .box { display:inline-block; width:14px; height:14px; border:1px solid #333; border-radius:3px; margin-right:8px; vertical-align:middle; }
+  .print-answer-line { border-bottom: 1px solid #999; display:inline-block; width:220px; height:1.4em; }
+  .key-correct { background:#eafbe12; }
+  .no-print { }
+  @media print {
+    .no-print { display:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="print-wrap">
+  <div class="no-print" style="margin-bottom:16px;">
+    <button class="btn btn-primary" onclick="window.print()">Print / Save as PDF</button>
+    <a class="btn btn-outline" href="index.html">&larr; Back to Practice Center</a>
+  </div>
+  <div id="print-root">Loading&hellip;</div>
+</div>
+
+<script src="printview.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const testId = params.get("id");
+  const mode = params.get("mode") === "key" ? "key" : "blank";
+  const s = document.createElement("script");
+  s.src = "data/" + testId + ".js";
+  s.onload = () => window.renderPrintView(testId, mode);
+  s.onerror = () => { document.getElementById("print-root").textContent = "Could not load test data for '" + testId + "'."; };
+  document.head.appendChild(s);
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAASPP Practice Test</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<script src="theme.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="test-header" class="test-header">
+  <div class="header-left">
+    <img src="favicon.svg" alt="" class="logo" style="height:24px;width:24px;">
+    <div class="title" id="test-title">Loading test&hellip;</div>
+  </div>
+  <div class="header-left">
+    <div class="timer" id="timer">--:--</div>
+    <button class="theme-toggle-btn" id="theme-toggle">🌙 Dark Mode</button>
+  </div>
+</div>
+
+<div id="app-root"></div>
+
+<footer class="appfoot"><a href="index.html">&larr; Back to Practice Center</a></footer>
+
+<script src="app.js"></script>
+<script>
+  // Load the requested test's data file dynamically (works from file:// too, unlike fetch()).
+  const params = new URLSearchParams(location.search);
+  const testId = params.get("id");
+  if (!testId) {
+    document.getElementById("app-root").innerHTML = "<main><p>No test specified. Go back and choose a test.</p></main>";
+  } else {
+    const s = document.createElement("script");
+    s.src = "data/" + testId + ".js";
+    s.onload = () => window.initTestRunner(testId);
+    s.onerror = () => {
+      document.getElementById("app-root").innerHTML = "<main><p>Could not load test data for '" + testId + "'.</p></main>";
+    };
+    document.head.appendChild(s);
+  }
+</script>
+</body>
+</html>
