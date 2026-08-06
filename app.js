@@ -82,18 +82,29 @@
     return true;
   }
 
+  // A question locks the moment you answer it and step away — you can still
+  // change your answer freely while it's the one on screen. Skipped (unanswered)
+  // questions stay open forever so you can still go fill them in.
+  function isLocked(item) {
+    return item.globalIndex !== currentIndex && isAnswered(item);
+  }
+
   function renderPalette() {
     const el = document.getElementById("palette-grid");
     if (!el) return;
     el.innerHTML = FLAT.map(item => {
       const cls = ["palette-item"];
+      const lockedItem = isLocked(item);
       if (isAnswered(item)) cls.push("answered");
       if (flagged.has(item.q.id)) cls.push("flagged");
       if (item.globalIndex === currentIndex) cls.push("current");
-      return `<button class="${cls.join(" ")}" data-idx="${item.globalIndex}" title="${item.sectionName}">${item.globalIndex + 1}</button>`;
+      if (lockedItem) cls.push("locked");
+      const label = lockedItem ? "&#128274;" : (item.globalIndex + 1);
+      const title = lockedItem ? "Locked - already answered" : item.sectionName;
+      return `<button class="${cls.join(" ")}" data-idx="${item.globalIndex}" title="${title}" ${lockedItem ? "disabled" : ""}>${label}</button>`;
     }).join("");
     el.querySelectorAll(".palette-item").forEach(btn => {
-      btn.addEventListener("click", () => goTo(parseInt(btn.dataset.idx, 10)));
+      if (!btn.disabled) btn.addEventListener("click", () => goTo(parseInt(btn.dataset.idx, 10)));
     });
     const answeredCount = FLAT.filter(isAnswered).length;
     const progEl = document.getElementById("palette-progress");
@@ -136,10 +147,10 @@
             <button class="btn btn-outline" id="flag-btn">${flagged.has(q.id) ? "⚑ Unflag for review" : "⚐ Flag for review"}</button>
           </div>
           <div class="nav-buttons">
-            <button class="btn btn-secondary" id="prev-btn" ${currentIndex === 0 ? "disabled" : ""}>&larr; Previous</button>
+            <button class="btn btn-secondary" id="prev-btn" ${(currentIndex === 0 || isLocked(FLAT[currentIndex - 1])) ? "disabled" : ""}>&larr; Previous</button>
             ${currentIndex === FLAT.length - 1
               ? `<button class="btn btn-primary" id="submit-btn">Submit Test</button>`
-              : `<button class="btn btn-primary" id="next-btn">Next &rarr;</button>`}
+              : `<button class="btn btn-primary" id="next-btn" ${isLocked(FLAT[currentIndex + 1]) ? "disabled" : ""}>Next &rarr;</button>`}
           </div>
         </div>
         <div class="palette">
@@ -148,9 +159,11 @@
           <div id="palette-grid" class="palette-grid"></div>
           <div class="legend">
             <div><span class="dot" style="background:var(--blue-light);border:1px solid var(--blue);"></span>Answered</div>
-            <div><span class="dot" style="background:#fff;border:1px solid var(--accent);"></span>Flagged</div>
-            <div><span class="dot" style="background:#fff;outline:2px solid var(--accent);"></span>Current</div>
+            <div><span class="dot" style="background:var(--surface);border:1px solid var(--accent);"></span>Flagged</div>
+            <div><span class="dot" style="background:var(--surface);outline:2px solid var(--accent);"></span>Current</div>
+            <div><span class="dot" style="background:var(--gray-bg);opacity:0.6;border:1px solid var(--border);"></span>Locked (already answered)</div>
           </div>
+          <div class="test-meta" style="margin-top:8px;">Once you answer a question and move on, it locks &mdash; you can still fill in any you skipped.</div>
           <div class="btn-row" style="margin-top:10px;">
             <button class="btn btn-outline" id="submit-early-btn" style="width:100%;">Submit Test Now</button>
           </div>
@@ -211,6 +224,7 @@
 
   function goTo(idx) {
     if (idx < 0 || idx >= FLAT.length) return;
+    if (isLocked(FLAT[idx])) return; // already answered and no longer on screen - no revisiting
     currentIndex = idx;
     saveProgress();
     renderQuestion();
@@ -252,6 +266,45 @@
     renderResults(auto);
   }
 
+  function truncate(s, n) {
+    return s.length > n ? s.slice(0, n).trim() + "…" : s;
+  }
+
+  function buildReviewSections(missedItems) {
+    const bySectionIdx = new Map();
+    missedItems.forEach(item => {
+      if (!bySectionIdx.has(item.sectionIndex)) {
+        bySectionIdx.set(item.sectionIndex, {
+          name: item.sectionName,
+          passageTitle: item.passageTitle,
+          passage: item.passage,
+          questions: []
+        });
+      }
+      bySectionIdx.get(item.sectionIndex).questions.push(item.q);
+    });
+    return Array.from(bySectionIdx.values());
+  }
+
+  function startMistakeReview() {
+    const missedItems = FLAT.filter(item => !gradeQuestion(item));
+    if (!missedItems.length) return;
+    const reviewData = {
+      id: "review_" + TEST.id + "_" + Date.now(),
+      grade: TEST.grade,
+      subject: TEST.subject,
+      title: TEST.title + " — Mistake Review",
+      durationMinutes: Math.max(10, missedItems.length * 2),
+      sections: buildReviewSections(missedItems)
+    };
+    try {
+      localStorage.setItem("caaspp_active_review", JSON.stringify(reviewData));
+      location.href = "test.html?review=1";
+    } catch (e) {
+      alert("Could not start the mistake review (storage error). Try again.");
+    }
+  }
+
   function renderResults(autoSubmitted) {
     const bySection = {};
     let totalCorrect = 0;
@@ -259,9 +312,10 @@
     FLAT.forEach(item => {
       const right = gradeQuestion(item);
       if (right) totalCorrect++;
-      if (!bySection[item.sectionName]) bySection[item.sectionName] = { correct: 0, total: 0 };
+      if (!bySection[item.sectionName]) bySection[item.sectionName] = { correct: 0, total: 0, missedStandards: new Set() };
       bySection[item.sectionName].total++;
       if (right) bySection[item.sectionName].correct++;
+      else if (item.q.standard) bySection[item.sectionName].missedStandards.add(item.q.standard);
     });
 
     const pct = Math.round((totalCorrect / FLAT.length) * 100);
@@ -271,6 +325,35 @@
       const d = bySection[name];
       domainRows += `<tr><td>${name}</td><td>${d.correct} / ${d.total}</td><td>${Math.round((d.correct / d.total) * 100)}%</td></tr>`;
     });
+
+    const weakSections = Object.keys(bySection)
+      .map(name => ({ name, ...bySection[name], pctRight: bySection[name].correct / bySection[name].total }))
+      .filter(s => s.correct < s.total)
+      .sort((a, b) => a.pctRight - b.pctRight);
+
+    let improveHtml = "";
+    if (weakSections.length) {
+      improveHtml = `<h3>Topics to Improve</h3><div class="score-summary" style="text-align:left;">` +
+        weakSections.map(s => {
+          const missedCount = s.total - s.correct;
+          const standardsList = Array.from(s.missedStandards).join(", ");
+          return `<div class="tip-box">
+            <strong>${s.name}</strong> &mdash; missed ${missedCount} of ${s.total} (${Math.round(s.pctRight * 100)}% correct)
+            ${standardsList ? `<div class="test-meta">Standards to review: ${standardsList}</div>` : ""}
+          </div>`;
+        }).join("") + `</div>`;
+    } else {
+      improveHtml = `<div class="tip-box"><strong>Great work &mdash; no weak topic areas this time!</strong></div>`;
+    }
+
+    const missedItems = FLAT.filter(item => !gradeQuestion(item));
+    let mistakesGlanceHtml = "";
+    if (missedItems.length) {
+      mistakesGlanceHtml = `<h3>Mistakes at a Glance</h3><div class="score-summary" style="text-align:left;">` +
+        missedItems.map(item => `<div style="padding:6px 0;border-bottom:1px solid var(--border);">
+          <strong>Q${item.globalIndex + 1}</strong> &middot; ${item.sectionName}${item.q.standard ? " (" + item.q.standard + ")" : ""}: ${truncate(item.q.prompt, 110)}
+        </div>`).join("") + `</div>`;
+    }
 
     let reviewHtml = "";
     FLAT.forEach(item => {
@@ -318,8 +401,11 @@
           <div class="btn-row" style="justify-content:center;margin-top:16px;">
             <a class="btn btn-primary" href="index.html">Back to Practice Center</a>
             <button class="btn btn-secondary" id="retake-btn">Retake This Test</button>
+            ${missedItems.length ? `<button class="btn btn-primary" id="mistake-review-btn">🎯 Practice My Mistakes (${missedItems.length})</button>` : ""}
           </div>
         </div>
+        ${improveHtml}
+        ${mistakesGlanceHtml}
         <h3>Question-by-Question Review</h3>
         ${reviewHtml}
       </main>`;
@@ -328,6 +414,8 @@
       clearProgress();
       location.reload();
     });
+    const mistakeBtn = document.getElementById("mistake-review-btn");
+    if (mistakeBtn) mistakeBtn.addEventListener("click", startMistakeReview);
   }
 
   window.initTestRunner = function (id) {

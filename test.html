@@ -27,19 +27,31 @@
 
 <script src="app.js"></script>
 <script>
-  // Load the requested test's data file dynamically (works from file:// too, unlike fetch()).
   const params = new URLSearchParams(location.search);
-  const testId = params.get("id");
-  if (!testId) {
-    document.getElementById("app-root").innerHTML = "<main><p>No test specified. Go back and choose a test.</p></main>";
+  if (params.get("review") === "1") {
+    // A "practice my mistakes" session — data comes from localStorage, not a data/*.js file.
+    let reviewData = null;
+    try { reviewData = JSON.parse(localStorage.getItem("caaspp_active_review")); } catch (e) {}
+    if (!reviewData) {
+      document.getElementById("app-root").innerHTML = "<main><p>No mistake-review session found. Finish a practice test first, then click \"Practice My Mistakes.\"</p></main>";
+    } else {
+      window.TEST_DATA = reviewData;
+      window.initTestRunner(reviewData.id);
+    }
   } else {
-    const s = document.createElement("script");
-    s.src = "data/" + testId + ".js";
-    s.onload = () => window.initTestRunner(testId);
-    s.onerror = () => {
-      document.getElementById("app-root").innerHTML = "<main><p>Could not load test data for '" + testId + "'.</p></main>";
-    };
-    document.head.appendChild(s);
+    // Load the requested test's data file dynamically (works from file:// too, unlike fetch()).
+    const testId = params.get("id");
+    if (!testId) {
+      document.getElementById("app-root").innerHTML = "<main><p>No test specified. Go back and choose a test.</p></main>";
+    } else {
+      const s = document.createElement("script");
+      s.src = "data/" + testId + ".js";
+      s.onload = () => window.initTestRunner(testId);
+      s.onerror = () => {
+        document.getElementById("app-root").innerHTML = "<main><p>Could not load test data for '" + testId + "'.</p></main>";
+      };
+      document.head.appendChild(s);
+    }
   }
 </script>
 </body>

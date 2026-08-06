@@ -353,6 +353,8 @@ main {
 .palette-item.current { outline: 2px solid var(--accent); font-weight: 700; }
 .palette-item.flagged { border-color: var(--accent); }
 .palette-item.flagged::after { content: "\1F6A9"; font-size: 0.55rem; position: relative; top: -8px; left: 8px; }
+.palette-item.locked { opacity: 0.5; cursor: not-allowed; background: var(--gray-bg); }
+.palette-item:disabled { cursor: not-allowed; }
 
 .legend { font-size: 0.75rem; color: var(--text-soft); display: flex; flex-direction: column; gap: 4px; }
 .legend span.dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
