@@ -11,6 +11,7 @@
   let timeRemaining = 0; // seconds
   let timerHandle = null;
   let submitted = false;
+  let paused = false;
 
   function storageKey(id) { return "caaspp_progress_" + id; }
 
@@ -42,7 +43,7 @@
   function saveProgress() {
     try {
       localStorage.setItem(storageKey(testId), JSON.stringify({
-        answers, flagged: Array.from(flagged), currentIndex, timeRemaining
+        answers, flagged: Array.from(flagged), currentIndex, timeRemaining, paused
       }));
     } catch (e) { /* ignore quota errors */ }
   }
@@ -72,6 +73,48 @@
         submitTest(true);
       }
     }, 1000);
+  }
+
+  function updatePauseButton() {
+    const btn = document.getElementById("pause-btn");
+    if (btn) btn.textContent = paused ? "▶ Resume" : "⏸ Pause";
+  }
+
+  function renderPausedScreen() {
+    document.getElementById("app-root").innerHTML = `
+      <main style="max-width:600px;margin:60px auto;padding:0 16px;">
+        <div class="score-summary">
+          <h2>⏸ Test Paused</h2>
+          <p>Your progress is saved and the clock is stopped.</p>
+          <div class="score-big" style="font-size:1.8rem;">${fmtTime(timeRemaining)} remaining</div>
+          <div class="btn-row" style="justify-content:center;margin-top:16px;">
+            <button class="btn btn-primary" id="resume-btn">▶ Resume Test</button>
+          </div>
+        </div>
+      </main>`;
+    document.getElementById("resume-btn").addEventListener("click", resumeTest);
+  }
+
+  function pauseTest() {
+    if (paused || submitted) return;
+    paused = true;
+    if (timerHandle) clearInterval(timerHandle);
+    saveProgress();
+    updatePauseButton();
+    renderPausedScreen();
+  }
+
+  function resumeTest() {
+    if (!paused) return;
+    paused = false;
+    saveProgress();
+    updatePauseButton();
+    renderQuestion();
+    startTimer();
+  }
+
+  function togglePause() {
+    if (paused) resumeTest(); else pauseTest();
   }
 
   function isAnswered(item) {
@@ -165,6 +208,9 @@
           </div>
           <div class="test-meta" style="margin-top:8px;">Once you answer a question and move on, it locks &mdash; you can still fill in any you skipped.</div>
           <div class="btn-row" style="margin-top:10px;">
+            <button class="btn btn-outline" id="review-answers-btn" style="width:100%;">📋 Review My Answers</button>
+          </div>
+          <div class="btn-row" style="margin-top:8px;">
             <button class="btn btn-outline" id="submit-early-btn" style="width:100%;">Submit Test Now</button>
           </div>
         </div>
@@ -210,8 +256,52 @@
     const submitBtn = document.getElementById("submit-btn");
     if (submitBtn) submitBtn.addEventListener("click", () => confirmSubmit());
     document.getElementById("submit-early-btn").addEventListener("click", () => confirmSubmit());
+    document.getElementById("review-answers-btn").addEventListener("click", renderAnswerReview);
 
     renderPalette();
+  }
+
+  function answerText(item) {
+    const q = item.q;
+    const given = answers[q.id];
+    if (!isAnswered(item)) return null;
+    if (q.type === "num") return given;
+    if (q.type === "ms") return (Array.isArray(given) ? given : []).map(i => q.choices[i]).join("; ");
+    return q.choices[given];
+  }
+
+  function renderAnswerReview() {
+    const rows = FLAT.map(item => {
+      const q = item.q;
+      const lockedItem = isLocked(item);
+      const answered = isAnswered(item);
+      const text = answerText(item);
+      const border = answered ? "var(--blue)" : "var(--border)";
+      return `<div class="review-item" data-idx="${item.globalIndex}"
+          style="border-left:5px solid ${border}; cursor:${lockedItem ? "not-allowed" : "pointer"}; opacity:${lockedItem ? "0.75" : "1"};">
+          <div class="q-number">Question ${item.globalIndex + 1} &middot; ${item.sectionName}${flagged.has(q.id) ? " &middot; ⚑ Flagged" : ""}${lockedItem ? " &middot; 🔒 Locked" : ""}</div>
+          <div class="q-prompt" style="font-size:1rem;">${truncate(q.prompt, 160)}</div>
+          <div><strong>Your answer:</strong> ${answered ? text : '<span style="color:var(--text-soft);">Not yet answered</span>'}</div>
+        </div>`;
+    }).join("");
+
+    document.getElementById("app-root").innerHTML = `
+      <main style="max-width:900px;margin:0 auto;padding:20px 16px 60px;">
+        <div class="score-summary" style="text-align:left;">
+          <h2 style="text-align:center;">📋 Review My Answers</h2>
+          <p class="test-meta" style="text-align:center;">This is a read-only summary. Answered questions are locked and can't be changed here &mdash; click any unanswered one to go fill it in.</p>
+          <div class="btn-row" style="justify-content:center;">
+            <button class="btn btn-primary" id="back-to-test-btn">&larr; Back to Test</button>
+          </div>
+        </div>
+        ${rows}
+      </main>`;
+
+    document.getElementById("back-to-test-btn").addEventListener("click", renderQuestion);
+    document.querySelectorAll(".review-item[data-idx]").forEach(el => {
+      const idx = parseInt(el.dataset.idx, 10);
+      if (!isLocked(FLAT[idx])) el.addEventListener("click", () => goTo(idx));
+    });
   }
 
   function confirmSubmit() {
@@ -447,16 +537,26 @@
       flagged = new Set(saved.flagged || []);
       currentIndex = Math.min(saved.currentIndex || 0, FLAT.length - 1);
       timeRemaining = typeof saved.timeRemaining === "number" ? saved.timeRemaining : TEST.durationMinutes * 60;
+      paused = !!saved.paused;
     } else {
       answers = {};
       flagged = new Set();
       currentIndex = 0;
       timeRemaining = TEST.durationMinutes * 60;
+      paused = false;
     }
 
     document.getElementById("test-title").textContent = TEST.title;
     document.getElementById("timer").textContent = fmtTime(timeRemaining);
-    renderQuestion();
-    startTimer();
+    updatePauseButton();
+    const pauseBtn = document.getElementById("pause-btn");
+    if (pauseBtn) pauseBtn.addEventListener("click", togglePause);
+
+    if (paused) {
+      renderPausedScreen();
+    } else {
+      renderQuestion();
+      startTimer();
+    }
   };
 })();
