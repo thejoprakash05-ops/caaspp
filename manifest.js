@@ -17,5 +17,11 @@ window.TEST_MANIFEST = [
   { id: "g8_ela_6",   grade: 8, subject: "ELA",  paper: 6, title: "Grade 8 ELA Practice Test 6",  durationMinutes: 90 },
   { id: "g8_math_4",  grade: 8, subject: "Math", paper: 4, title: "Grade 8 Math Practice Test 4", durationMinutes: 75 },
   { id: "g8_math_5",  grade: 8, subject: "Math", paper: 5, title: "Grade 8 Math Practice Test 5", durationMinutes: 75 },
-  { id: "g8_math_6",  grade: 8, subject: "Math", paper: 6, title: "Grade 8 Math Practice Test 6", durationMinutes: 75 }
+  { id: "g8_math_6",  grade: 8, subject: "Math", paper: 6, title: "Grade 8 Math Practice Test 6", durationMinutes: 75 },
+  { id: "g7_ela_4",   grade: 7, subject: "ELA",  paper: 4, title: "Grade 7 ELA Practice Test 4",  durationMinutes: 90 },
+  { id: "g7_ela_5",   grade: 7, subject: "ELA",  paper: 5, title: "Grade 7 ELA Practice Test 5",  durationMinutes: 90 },
+  { id: "g7_ela_6",   grade: 7, subject: "ELA",  paper: 6, title: "Grade 7 ELA Practice Test 6",  durationMinutes: 90 },
+  { id: "g7_math_4",  grade: 7, subject: "Math", paper: 4, title: "Grade 7 Math Practice Test 4", durationMinutes: 75 },
+  { id: "g7_math_5",  grade: 7, subject: "Math", paper: 5, title: "Grade 7 Math Practice Test 5", durationMinutes: 75 },
+  { id: "g7_math_6",  grade: 7, subject: "Math", paper: 6, title: "Grade 7 Math Practice Test 6", durationMinutes: 75 }
 ];

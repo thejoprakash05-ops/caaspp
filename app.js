@@ -117,6 +117,217 @@
     if (paused) resumeTest(); else pauseTest();
   }
 
+  // -------- Calculator (Math tests only) --------
+
+  let calcState = { current: "0", previous: null, operator: null, overwrite: true };
+
+  function calcRound(n) {
+    if (!isFinite(n)) return n;
+    return parseFloat(n.toPrecision(12));
+  }
+
+  function calcUpdateDisplay() {
+    const sub = document.getElementById("calc-subline");
+    const main = document.getElementById("calc-mainline");
+    if (sub) sub.textContent = calcState.operator ? (calcState.previous + " " + calcState.operator) : "";
+    if (main) main.textContent = calcState.current;
+  }
+
+  function calcInputDigit(d) {
+    if (calcState.current === "Error") { calcState.current = "0"; calcState.overwrite = true; }
+    if (d === ".") {
+      if (calcState.overwrite) { calcState.current = "0."; calcState.overwrite = false; }
+      else if (!calcState.current.includes(".")) calcState.current += ".";
+    } else if (calcState.overwrite) {
+      calcState.current = d;
+      calcState.overwrite = false;
+    } else {
+      calcState.current = calcState.current === "0" ? d : calcState.current + d;
+    }
+    calcUpdateDisplay();
+  }
+
+  function calcClear() {
+    calcState = { current: "0", previous: null, operator: null, overwrite: true };
+    calcUpdateDisplay();
+  }
+
+  function calcBackspace() {
+    if (calcState.overwrite || calcState.current === "Error") return;
+    calcState.current = calcState.current.length > 1 ? calcState.current.slice(0, -1) : "0";
+    if (calcState.current === "-") calcState.current = "0";
+    calcUpdateDisplay();
+  }
+
+  function calcToggleSign() {
+    if (calcState.current === "0" || calcState.current === "Error") return;
+    calcState.current = calcState.current.startsWith("-") ? calcState.current.slice(1) : "-" + calcState.current;
+    calcUpdateDisplay();
+  }
+
+  function calcSqrt() {
+    const v = parseFloat(calcState.current);
+    calcState.current = (isNaN(v) || v < 0) ? "Error" : String(calcRound(Math.sqrt(v)));
+    calcState.overwrite = true;
+    calcUpdateDisplay();
+  }
+
+  function calcApply(a, op, b) {
+    switch (op) {
+      case "+": return a + b;
+      case "−": return a - b;
+      case "×": return a * b;
+      case "÷": return b === 0 ? NaN : a / b;
+      default: return b;
+    }
+  }
+
+  function calcOperator(op) {
+    if (calcState.current === "Error") return;
+    if (calcState.operator && !calcState.overwrite) {
+      const result = calcApply(parseFloat(calcState.previous), calcState.operator, parseFloat(calcState.current));
+      calcState.current = isNaN(result) ? "Error" : String(calcRound(result));
+    }
+    calcState.previous = calcState.current;
+    calcState.operator = op;
+    calcState.overwrite = true;
+    calcUpdateDisplay();
+  }
+
+  function calcEquals() {
+    if (!calcState.operator || calcState.previous === null || calcState.current === "Error") return;
+    const result = calcApply(parseFloat(calcState.previous), calcState.operator, parseFloat(calcState.current));
+    calcState.current = isNaN(result) ? "Error" : String(calcRound(result));
+    calcState.previous = null;
+    calcState.operator = null;
+    calcState.overwrite = true;
+    calcUpdateDisplay();
+  }
+
+  function toggleCalculator() {
+    const panel = document.getElementById("calc-panel");
+    if (panel) panel.classList.toggle("open");
+  }
+
+  function buildCalculator() {
+    if (document.getElementById("calc-fab")) return; // already built
+
+    const fab = document.createElement("button");
+    fab.id = "calc-fab";
+    fab.className = "calc-fab";
+    fab.title = "Calculator";
+    fab.textContent = "🧮";
+    fab.addEventListener("click", toggleCalculator);
+
+    const panel = document.createElement("div");
+    panel.id = "calc-panel";
+    panel.className = "calc-panel";
+    panel.innerHTML = `
+      <div class="calc-header">
+        <span>Calculator</span>
+        <button id="calc-close" title="Close">&times;</button>
+      </div>
+      <div class="calc-display">
+        <div class="calc-subline" id="calc-subline"></div>
+        <div class="calc-mainline" id="calc-mainline">0</div>
+      </div>
+      <div class="calc-grid">
+        <button class="calc-btn clear" data-action="clear">C</button>
+        <button class="calc-btn" data-action="backspace">⌫</button>
+        <button class="calc-btn" data-action="sqrt">&radic;</button>
+        <button class="calc-btn op" data-action="op" data-value="÷">÷</button>
+
+        <button class="calc-btn" data-action="digit" data-value="7">7</button>
+        <button class="calc-btn" data-action="digit" data-value="8">8</button>
+        <button class="calc-btn" data-action="digit" data-value="9">9</button>
+        <button class="calc-btn op" data-action="op" data-value="×">×</button>
+
+        <button class="calc-btn" data-action="digit" data-value="4">4</button>
+        <button class="calc-btn" data-action="digit" data-value="5">5</button>
+        <button class="calc-btn" data-action="digit" data-value="6">6</button>
+        <button class="calc-btn op" data-action="op" data-value="−">−</button>
+
+        <button class="calc-btn" data-action="digit" data-value="1">1</button>
+        <button class="calc-btn" data-action="digit" data-value="2">2</button>
+        <button class="calc-btn" data-action="digit" data-value="3">3</button>
+        <button class="calc-btn op" data-action="op" data-value="+">+</button>
+
+        <button class="calc-btn" data-action="sign">±</button>
+        <button class="calc-btn" data-action="digit" data-value="0">0</button>
+        <button class="calc-btn" data-action="digit" data-value=".">.</button>
+        <button class="calc-btn eq" data-action="equals">=</button>
+      </div>`;
+
+    document.body.appendChild(fab);
+    document.body.appendChild(panel);
+
+    document.getElementById("calc-close").addEventListener("click", toggleCalculator);
+    panel.querySelector(".calc-grid").addEventListener("click", (e) => {
+      const btn = e.target.closest(".calc-btn");
+      if (!btn) return;
+      const action = btn.dataset.action;
+      if (action === "digit") calcInputDigit(btn.dataset.value);
+      else if (action === "op") calcOperator(btn.dataset.value);
+      else if (action === "equals") calcEquals();
+      else if (action === "clear") calcClear();
+      else if (action === "backspace") calcBackspace();
+      else if (action === "sign") calcToggleSign();
+      else if (action === "sqrt") calcSqrt();
+    });
+  }
+
+  // -------- Notes (scratchpad, all subjects) --------
+
+  function notesStorageKey() { return "caaspp_notes_" + testId; }
+
+  function toggleNotes() {
+    const panel = document.getElementById("notes-panel");
+    if (panel) panel.classList.toggle("open");
+  }
+
+  function buildNotes() {
+    if (document.getElementById("notes-fab")) return; // already built
+
+    const fab = document.createElement("button");
+    fab.id = "notes-fab";
+    fab.className = "notes-fab";
+    fab.title = "Notes";
+    fab.textContent = "📝";
+    fab.addEventListener("click", toggleNotes);
+
+    const panel = document.createElement("div");
+    panel.id = "notes-panel";
+    panel.className = "notes-panel";
+    panel.innerHTML = `
+      <div class="notes-header">
+        <span>Notes / Scratchpad</span>
+        <button id="notes-close" title="Close">&times;</button>
+      </div>
+      <textarea class="notes-textarea" id="notes-textarea" placeholder="Jot down notes or work here — it's just for you, not graded."></textarea>
+      <div class="notes-footer">
+        <span class="test-meta">Saved automatically</span>
+        <button class="btn btn-outline" id="notes-clear" style="padding:4px 10px;font-size:0.8rem;">Clear</button>
+      </div>`;
+
+    document.body.appendChild(fab);
+    document.body.appendChild(panel);
+
+    let saved = "";
+    try { saved = localStorage.getItem(notesStorageKey()) || ""; } catch (e) {}
+    const textarea = document.getElementById("notes-textarea");
+    textarea.value = saved;
+
+    textarea.addEventListener("input", () => {
+      try { localStorage.setItem(notesStorageKey(), textarea.value); } catch (e) {}
+    });
+    document.getElementById("notes-close").addEventListener("click", toggleNotes);
+    document.getElementById("notes-clear").addEventListener("click", () => {
+      if (!confirm("Clear all your notes for this test?")) return;
+      textarea.value = "";
+      try { localStorage.removeItem(notesStorageKey()); } catch (e) {}
+    });
+  }
+
   function isAnswered(item) {
     const v = answers[item.q.id];
     if (v === undefined || v === null) return false;
@@ -551,6 +762,9 @@
     updatePauseButton();
     const pauseBtn = document.getElementById("pause-btn");
     if (pauseBtn) pauseBtn.addEventListener("click", togglePause);
+
+    if (TEST.subject === "Math") buildCalculator();
+    buildNotes();
 
     if (paused) {
       renderPausedScreen();

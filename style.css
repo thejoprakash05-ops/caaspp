@@ -423,6 +423,182 @@ main {
   font-size: 0.9rem;
 }
 
+/* ---------------- Calculator ---------------- */
+
+.calc-fab {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  z-index: 60;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+}
+
+.calc-fab:hover { background: var(--blue-dark); }
+
+.calc-panel {
+  position: fixed;
+  bottom: 86px;
+  right: 22px;
+  z-index: 60;
+  width: 250px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  padding: 12px;
+  display: none;
+}
+
+.calc-panel.open { display: block; }
+
+.calc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--heading);
+}
+
+.calc-header button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--text-soft);
+  line-height: 1;
+}
+
+.calc-display {
+  background: var(--gray-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.calc-subline {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  min-height: 1.1em;
+  text-align: right;
+}
+
+.calc-mainline {
+  font-family: "Consolas", monospace;
+  font-size: 1.5rem;
+  text-align: right;
+  word-break: break-all;
+}
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.calc-btn {
+  padding: 10px 0;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.calc-btn:hover { background: var(--blue-light); }
+.calc-btn.op { background: var(--blue-light); color: var(--heading); font-weight: 600; }
+.calc-btn.eq { background: var(--blue); color: #fff; font-weight: 600; }
+.calc-btn.clear { color: var(--red); }
+
+@media print {
+  .calc-fab, .calc-panel, .notes-fab, .notes-panel { display: none !important; }
+}
+
+/* ---------------- Notes ---------------- */
+
+.notes-fab {
+  position: fixed;
+  bottom: 22px;
+  left: 22px;
+  z-index: 60;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #1f2733;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+}
+
+.notes-fab:hover { filter: brightness(0.92); }
+
+.notes-panel {
+  position: fixed;
+  bottom: 86px;
+  left: 22px;
+  z-index: 60;
+  width: min(320px, calc(100vw - 44px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  padding: 12px;
+  display: none;
+}
+
+.notes-panel.open { display: block; }
+
+.notes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--heading);
+}
+
+.notes-header button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--text-soft);
+  line-height: 1;
+}
+
+.notes-textarea {
+  width: 100%;
+  min-height: 160px;
+  resize: vertical;
+  background: var(--gray-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-family: "Segoe UI", Verdana, Arial, sans-serif;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.notes-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
 footer.appfoot {
   text-align: center;
   color: var(--text-soft);
